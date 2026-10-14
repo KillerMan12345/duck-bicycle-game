@@ -1,0 +1,1928 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>鸭鸭骑行记 - 鸭子骑自行车动画游戏</title>
+  <style>
+    :root {
+      --bg-card: rgba(255, 255, 255, 0.88);
+      --text-main: #1e293b;
+      --text-sub: #475569;
+      --accent: #f59e0b;
+      --accent-hover: #d97706;
+      --green: #10b981;
+      --blue: #3b82f6;
+      --pink: #ec4899;
+      --border-radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      overflow-x: hidden;
+    }
+
+    .game-wrapper {
+      width: 100%;
+      max-width: 960px;
+      background: #ffffff;
+      border-radius: 22px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), 0 0 0 4px rgba(255, 255, 255, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Header & HUD */
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 18px;
+      background: linear-gradient(90deg, #fef3c7 0%, #e0f2fe 50%, #dcfce7 100%);
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      font-size: 28px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .stats-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1.5px solid #cbd5e1;
+      border-radius: 999px;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e293b;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+    }
+
+    .stat-pill span.val {
+      color: #d97706;
+      font-variant-numeric: tabular-nums;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    .hearts {
+      letter-spacing: 2px;
+      font-size: 15px;
+    }
+
+    .toolbar-btns {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip-btn {
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      color: #1e293b;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+
+    .chip-btn:hover {
+      background: #f8fafc;
+      transform: translateY(-1px);
+      border-color: #94a3b8;
+    }
+
+    .chip-btn:active {
+      transform: translateY(0);
+    }
+
+    .chip-btn.active {
+      background: #10b981;
+      color: #ffffff;
+      border-color: #059669;
+    }
+
+    /* Canvas Container */
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      max-height: 520px;
+      background: #87ceeb;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: pointer;
+    }
+
+    /* Overlay Screens */
+    .overlay-banner {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 10;
+      transition: opacity 0.25s ease;
+    }
+
+    .overlay-banner.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .modal-card {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 28px 32px;
+      max-width: 460px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      border: 3px solid #fde68a;
+      animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.88); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-emoji {
+      font-size: 54px;
+      margin-bottom: 8px;
+      display: inline-block;
+      animation: bounce 1.6s infinite ease-in-out;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0) rotate(-4deg); }
+      50% { transform: translateY(-8px) rotate(6deg); }
+    }
+
+    .modal-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .modal-desc {
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    .key-hints {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      text-align: left;
+      background: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 20px;
+      font-size: 12.5px;
+      color: #334155;
+    }
+
+    .key-hints div {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    kbd {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0f172a;
+      font-family: inherit;
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+      color: #ffffff;
+      border: none;
+      font-size: 16px;
+      font-weight: 800;
+      padding: 12px 28px;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(234, 88, 12, 0.35);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      margin: 0 6px;
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(234, 88, 12, 0.45);
+    }
+
+    .secondary-btn {
+      background: #e2e8f0;
+      color: #1e293b;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 12px 22px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      margin: 0 6px;
+    }
+
+    .secondary-btn:hover {
+      background: #cbd5e1;
+    }
+
+    /* Bottom Controls Dock */
+    .controls-dock {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      padding: 14px 18px;
+      background: #f8fafc;
+      border-top: 2px solid #e2e8f0;
+    }
+
+    .action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 10px 8px;
+      border-radius: 14px;
+      border: 2px solid #e2e8f0;
+      background: #ffffff;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      box-shadow: 0 3px 0 #cbd5e1;
+    }
+
+    .action-btn:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .action-btn:active, .action-btn.pressed {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #cbd5e1;
+      background: #fef3c7;
+      border-color: #f59e0b;
+    }
+
+    .action-btn .emoji {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .action-btn .label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #1e293b;
+    }
+
+    .action-btn .sub {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+      .top-bar {
+        padding: 10px 12px;
+      }
+      .brand-subtitle {
+        display: none;
+      }
+      .controls-dock {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+        padding: 10px;
+      }
+      .action-btn .sub {
+        display: none;
+      }
+      .action-btn .label {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="game-wrapper">
+    <!-- Top Header & Stats -->
+    <div class="top-bar">
+      <div class="brand">
+        <span class="brand-icon">🦆🚲</span>
+        <div>
+          <div class="brand-title">鸭鸭骑行大冒险</div>
+          <div class="brand-subtitle">骨骼踩踏动画 · 特技空翻 · 昼夜风景</div>
+        </div>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stat-pill" title="当前生命值">
+          <span class="hearts" id="heartsDisplay">❤️❤️❤️</span>
+        </div>
+        <div class="stat-pill">
+          <span>🌽 得分</span>
+          <span class="val" id="scoreDisplay">0</span>
+        </div>
+        <div class="stat-pill">
+          <span>🏆 最高</span>
+          <span class="val" id="highScoreDisplay">0</span>
+        </div>
+        <div class="stat-pill">
+          <span>📏 里程</span>
+          <span class="val" id="distDisplay">0m</span>
+        </div>
+      </div>
+
+      <div class="toolbar-btns">
+        <button class="chip-btn" id="modeToggleBtn" title="切换闯关模式或悠闲自动巡航动画模式">
+          🌿 悠闲自动骑行: 关
+        </button>
+        <button class="chip-btn" id="sceneToggleBtn" title="切换天气与昼夜场景">
+          ☀️ 晴朗草地
+        </button>
+        <button class="chip-btn" id="soundToggleBtn" title="开关音效">
+          🔊 音效
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Game Canvas -->
+    <div class="canvas-container">
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+      <!-- Start / Game Over Overlay -->
+      <div class="overlay-banner" id="overlayBanner">
+        <div class="modal-card">
+          <div class="modal-emoji" id="modalEmoji">🦆🚲</div>
+          <h2 class="modal-title" id="modalTitle">鸭鸭骑行大冒险</h2>
+          <p class="modal-desc" id="modalDesc">
+            控制骑着心爱小单车的嘎嘎鸭，在乡间小路收集甜玉米与牛角包，跨过水坑、飞跃跳台秀出 360° 空中特技！
+          </p>
+          <div class="key-hints">
+            <div><kbd>空格</kbd> / <kbd>↑</kbd> 跳跃 (可二段跳)</div>
+            <div><kbd>↓</kbd> 破风俯冲加速</div>
+            <div><kbd>F</kbd> 空中特技空翻</div>
+            <div><kbd>B</kbd> 嘎嘎叫 & 按车铃</div>
+            <div><kbd>H</kbd> 更换鸭鸭装扮</div>
+            <div><kbd>A</kbd> 悠闲自动巡航模式</div>
+          </div>
+          <div>
+            <button class="primary-btn" id="startGameBtn">🚀 开始骑行</button>
+            <button class="secondary-btn" id="chillWatchBtn">🌿 悠闲看动画</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Interactive Controls -->
+    <div class="controls-dock">
+      <button class="action-btn" id="btnJump">
+        <span class="emoji">🦘</span>
+        <span class="label">跳跃 / 二段跳</span>
+        <span class="sub">空格 / ↑ 键</span>
+      </button>
+      <button class="action-btn" id="btnAero">
+        <span class="emoji">💨</span>
+        <span class="label">俯冲加速</span>
+        <span class="sub">按住 ↓ 键</span>
+      </button>
+      <button class="action-btn" id="btnFlip">
+        <span class="emoji">🌀</span>
+        <span class="label">特技空翻</span>
+        <span class="sub">空中按 F 键</span>
+      </button>
+      <button class="action-btn" id="btnBell">
+        <span class="emoji">🔔</span>
+        <span class="label">嘎嘎车铃</span>
+        <span class="sub">按 B 键</span>
+      </button>
+      <button class="action-btn" id="btnHat">
+        <span class="emoji">⛑️</span>
+        <span class="label" id="hatLabel">红头盔</span>
+        <span class="sub">按 H 换装</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      const GROUND_Y = 435;
+
+      // UI Elements
+      const heartsDisplay = document.getElementById('heartsDisplay');
+      const scoreDisplay = document.getElementById('scoreDisplay');
+      const highScoreDisplay = document.getElementById('highScoreDisplay');
+      const distDisplay = document.getElementById('distDisplay');
+      const overlayBanner = document.getElementById('overlayBanner');
+      const modalEmoji = document.getElementById('modalEmoji');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalDesc = document.getElementById('modalDesc');
+      const startGameBtn = document.getElementById('startGameBtn');
+      const chillWatchBtn = document.getElementById('chillWatchBtn');
+      const modeToggleBtn = document.getElementById('modeToggleBtn');
+      const sceneToggleBtn = document.getElementById('sceneToggleBtn');
+      const soundToggleBtn = document.getElementById('soundToggleBtn');
+      const hatLabel = document.getElementById('hatLabel');
+
+      // Buttons
+      const btnJump = document.getElementById('btnJump');
+      const btnAero = document.getElementById('btnAero');
+      const btnFlip = document.getElementById('btnFlip');
+      const btnBell = document.getElementById('btnBell');
+      const btnHat = document.getElementById('btnHat');
+
+      // Web Audio Synthesizer
+      let soundEnabled = true;
+      let audioCtx = null;
+
+      function initAudio() {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            audioCtx = new AudioContextClass();
+          }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }
+
+      function playSound(type) {
+        if (!soundEnabled) return;
+        initAudio();
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'quack') {
+          // Cute duck quack synthesis
+          const osc = audioCtx.createOscillator();
+          const filter = audioCtx.createBiquadFilter();
+          const gain = audioCtx.createGain();
+
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(340, now);
+          osc.frequency.exponentialRampToValueAtTime(480, now + 0.06);
+          osc.frequency.exponentialRampToValueAtTime(250, now + 0.22);
+
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(950, now);
+          filter.Q.setValueAtTime(3.5, now);
+
+          gain.gain.setValueAtTime(0.01, now);
+          gain.gain.linearRampToValueAtTime(0.28, now + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+
+          // Bicycle bell ring right after
+          [1567.98, 2093.0].forEach((freq, idx) => {
+            const bOsc = audioCtx.createOscillator();
+            const bGain = audioCtx.createGain();
+            bOsc.type = 'sine';
+            bOsc.frequency.setValueAtTime(freq, now + 0.08 + idx * 0.07);
+            bGain.gain.setValueAtTime(0.15, now + 0.08 + idx * 0.07);
+            bGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45 + idx * 0.07);
+            bOsc.connect(bGain);
+            bGain.connect(audioCtx.destination);
+            bOsc.start(now + 0.08 + idx * 0.07);
+            bOsc.stop(now + 0.48 + idx * 0.07);
+          });
+        } else if (type === 'jump') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.exponentialRampToValueAtTime(580, now + 0.16);
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.19);
+        } else if (type === 'collect') {
+          [587.33, 880.0].forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+            gain.gain.setValueAtTime(0.18, now + idx * 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.22);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + idx * 0.06);
+            osc.stop(now + idx * 0.06 + 0.24);
+          });
+        } else if (type === 'stunt') {
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.055);
+            gain.gain.setValueAtTime(0.2, now + idx * 0.055);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.055 + 0.25);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + idx * 0.055);
+            osc.stop(now + idx * 0.055 + 0.26);
+          });
+        } else if (type === 'hit') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(170, now);
+          osc.frequency.linearRampToValueAtTime(75, now + 0.28);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.31);
+        }
+      }
+
+      // Outfits / Hats
+      const HATS = [
+        { id: 'helmet', name: '红头盔', emoji: '⛑️' },
+        { id: 'straw', name: '田园草帽', emoji: '👒' },
+        { id: 'propeller', name: '竹蜻蜓帽', emoji: '🧢' },
+        { id: 'shades', name: '酷炫墨镜', emoji: '😎' },
+        { id: 'crown', name: '黄金皇冠', emoji: '👑' }
+      ];
+      let currentHatIndex = 0;
+
+      // Scene Themes
+      const SCENES = [
+        {
+          name: '☀️ 晴朗草地',
+          skyTop: '#38bdf8',
+          skyBottom: '#bae6fd',
+          sunColor: '#fde047',
+          hillFar: '#86efac',
+          hillNear: '#4ade80',
+          grassTop: '#22c55e',
+          roadColor: '#64748b',
+          roadLine: '#f8fafc',
+          stars: false
+        },
+        {
+          name: '🌅 落日余晖',
+          skyTop: '#fb7185',
+          skyBottom: '#fed7aa',
+          sunColor: '#f97316',
+          hillFar: '#fdba74',
+          hillNear: '#fb923c',
+          grassTop: '#16a34a',
+          roadColor: '#475569',
+          roadLine: '#fef08a',
+          stars: false
+        },
+        {
+          name: '🌙 星空夜骑',
+          skyTop: '#0f172a',
+          skyBottom: '#1e1b4b',
+          sunColor: '#fef9c3',
+          hillFar: '#1e293b',
+          hillNear: '#334155',
+          grassTop: '#15803d',
+          roadColor: '#1e293b',
+          roadLine: '#38bdf8',
+          stars: true
+        }
+      ];
+      let currentSceneIndex = 0;
+
+      // Game State
+      let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
+      let chillAutoMode = false;
+      let score = 0;
+      let highScore = Number(localStorage.getItem('duck_bike_high_score') || 0);
+      highScoreDisplay.textContent = highScore;
+      let distance = 0;
+      let lives = 3;
+      let baseSpeed = 5.4;
+      let currentSpeed = 5.4;
+      let frameCount = 0;
+      let turboTimer = 0;
+      let invincibleTimer = 0;
+
+      // Duck & Bike Physics State
+      const duck = {
+        x: 210,
+        y: GROUND_Y,
+        vy: 0,
+        gravity: 0.62,
+        jumpCount: 0,
+        maxJumps: 2,
+        wheelAngle: 0,
+        pedalAngle: 0,
+        pitchAngle: 0,      // Wheelie / flip rotation
+        flipSpinning: false,
+        flipProgress: 0,
+        crouching: false,
+        quackTimer: 0,
+        blinkTimer: 0,
+        wingFlap: 0,
+        propellerAngle: 0,
+        scarfPoints: Array.from({ length: 7 }, () => ({ x: 0, y: 0 }))
+      };
+
+      // Scenery & Entities
+      const clouds = Array.from({ length: 6 }, (_, i) => ({
+        x: i * 190 + Math.random() * 60,
+        y: 45 + Math.random() * 95,
+        scale: 0.65 + Math.random() * 0.55,
+        speed: 0.35 + Math.random() * 0.35
+      }));
+
+      const trees = Array.from({ length: 8 }, (_, i) => ({
+        x: i * 145 + Math.random() * 40,
+        scale: 0.75 + Math.random() * 0.45,
+        type: i % 2
+      }));
+
+      const starsList = Array.from({ length: 45 }, () => ({
+        x: Math.random() * W,
+        y: Math.random() * 240,
+        r: 1 + Math.random() * 1.8,
+        twinkle: Math.random() * Math.PI * 2
+      }));
+
+      let obstacles = [];
+      let collectibles = [];
+      let particles = [];
+      let floatingTexts = [];
+      let nextSpawnTimer = 50;
+
+      // Helper: Add Floating Text
+      function addFloatingText(text, x, y, color = '#f59e0b') {
+        floatingTexts.push({
+          text,
+          x,
+          y,
+          vy: -1.8,
+          alpha: 1,
+          color
+        });
+      }
+
+      // Helper: Spawn Particles
+      function spawnParticles(x, y, color, count = 10, spread = 5) {
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            x,
+            y,
+            vx: (Math.random() - 0.5) * spread * 1.5 - 1.5,
+            vy: -Math.random() * spread - 1,
+            r: 2.5 + Math.random() * 3.5,
+            color,
+            alpha: 1
+          });
+        }
+      }
+
+      // Actions
+      function triggerJump() {
+        if (gameState !== 'PLAYING') return;
+        if (duck.jumpCount < duck.maxJumps) {
+          duck.vy = duck.jumpCount === 0 ? -13.2 : -11.4;
+          duck.jumpCount++;
+          duck.pitchAngle = -0.22; // Slight wheelie lift
+          playSound('jump');
+          spawnParticles(duck.x - 28, duck.y, '#e2e8f0', 7, 3.5);
+          if (duck.jumpCount === 2) {
+            addFloatingText('二段跳! 🪽', duck.x, duck.y - 85, '#38bdf8');
+          }
+        }
+      }
+
+      function triggerFlip() {
+        if (gameState !== 'PLAYING') return;
+        // If on ground, jump first and flip!
+        if (duck.y >= GROUND_Y - 2) {
+          triggerJump();
+        }
+        if (!duck.flipSpinning) {
+          duck.flipSpinning = true;
+          duck.flipProgress = 0;
+          playSound('stunt');
+          score += 50;
+          updateHUD();
+          addFloatingText('360° 空中特技 +50! 🌀', duck.x, duck.y - 95, '#ec4899');
+          spawnParticles(duck.x, duck.y - 40, '#f472b6', 14, 5);
+        }
+      }
+
+      function triggerQuackBell() {
+        duck.quackTimer = 38;
+        playSound('quack');
+        const phrases = ['嘎嘎! 🔔', '让一让鸭~ ♪', '冲鸭! 🦆', '叮铃铃~ ✨'];
+        const msg = phrases[Math.floor(Math.random() * phrases.length)];
+        addFloatingText(msg, duck.x + 35, duck.y - 92, '#f59e0b');
+        spawnParticles(duck.x + 28, duck.y - 60, '#fde047', 6, 3);
+      }
+
+      function cycleHat() {
+        currentHatIndex = (currentHatIndex + 1) % HATS.length;
+        const h = HATS[currentHatIndex];
+        hatLabel.textContent = h.name;
+        btnHat.querySelector('.emoji').textContent = h.emoji;
+        addFloatingText(`换装: ${h.emoji} ${h.name}`, duck.x, duck.y - 95, '#10b981');
+        playSound('collect');
+      }
+
+      function updateHUD() {
+        scoreDisplay.textContent = Math.floor(score);
+        if (score > highScore) {
+          highScore = Math.floor(score);
+          localStorage.setItem('duck_bike_high_score', highScore);
+          highScoreDisplay.textContent = highScore;
+        }
+        distDisplay.textContent = `${Math.floor(distance)}m`;
+        if (chillAutoMode) {
+          heartsDisplay.textContent = '♾️ 悠闲模式';
+        } else {
+          heartsDisplay.textContent = '❤️'.repeat(Math.max(0, lives)) + '🖤'.repeat(Math.max(0, 3 - lives));
+        }
+      }
+
+      function resetGame(enableChill = false) {
+        chillAutoMode = enableChill;
+        modeToggleBtn.textContent = chillAutoMode ? '🌿 悠闲自动骑行: 开' : '🌿 悠闲自动骑行: 关';
+        modeToggleBtn.classList.toggle('active', chillAutoMode);
+
+        score = 0;
+        distance = 0;
+        lives = 3;
+        baseSpeed = 5.4;
+        currentSpeed = 5.4;
+        turboTimer = 0;
+        invincibleTimer = 0;
+        duck.y = GROUND_Y;
+        duck.vy = 0;
+        duck.jumpCount = 0;
+        duck.pitchAngle = 0;
+        duck.flipSpinning = false;
+        duck.flipProgress = 0;
+        obstacles = [];
+        collectibles = [];
+        particles = [];
+        floatingTexts = [];
+        nextSpawnTimer = 40;
+        gameState = 'PLAYING';
+        overlayBanner.classList.add('hidden');
+        updateHUD();
+        triggerQuackBell();
+      }
+
+      // Controls Binding
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+          e.preventDefault();
+          if (gameState !== 'PLAYING') {
+            resetGame(false);
+          } else {
+            triggerJump();
+          }
+          btnJump.classList.add('pressed');
+        } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+          e.preventDefault();
+          duck.crouching = true;
+          btnAero.classList.add('pressed');
+        } else if (e.code === 'KeyF') {
+          e.preventDefault();
+          triggerFlip();
+          btnFlip.classList.add('pressed');
+        } else if (e.code === 'KeyB') {
+          e.preventDefault();
+          triggerQuackBell();
+          btnBell.classList.add('pressed');
+        } else if (e.code === 'KeyH') {
+          e.preventDefault();
+          cycleHat();
+          btnHat.classList.add('pressed');
+        } else if (e.code === 'KeyA') {
+          e.preventDefault();
+          chillAutoMode = !chillAutoMode;
+          modeToggleBtn.textContent = chillAutoMode ? '🌿 悠闲自动骑行: 开' : '🌿 悠闲自动骑行: 关';
+          modeToggleBtn.classList.toggle('active', chillAutoMode);
+          updateHUD();
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+          btnJump.classList.remove('pressed');
+        } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+          duck.crouching = false;
+          btnAero.classList.remove('pressed');
+        } else if (e.code === 'KeyF') {
+          btnFlip.classList.remove('pressed');
+        } else if (e.code === 'KeyB') {
+          btnBell.classList.remove('pressed');
+        } else if (e.code === 'KeyH') {
+          btnHat.classList.remove('pressed');
+        }
+      });
+
+      // Mouse / Touch Button Listeners
+      btnJump.addEventListener('pointerdown', (e) => { e.preventDefault(); triggerJump(); });
+      btnAero.addEventListener('pointerdown', (e) => { e.preventDefault(); duck.crouching = true; });
+      btnAero.addEventListener('pointerup', () => { duck.crouching = false; });
+      btnAero.addEventListener('pointerleave', () => { duck.crouching = false; });
+      btnFlip.addEventListener('pointerdown', (e) => { e.preventDefault(); triggerFlip(); });
+      btnBell.addEventListener('pointerdown', (e) => { e.preventDefault(); triggerQuackBell(); });
+      btnHat.addEventListener('pointerdown', (e) => { e.preventDefault(); cycleHat(); });
+
+      canvas.addEventListener('pointerdown', (e) => {
+        if (gameState === 'PLAYING') {
+          triggerJump();
+        }
+      });
+
+      startGameBtn.addEventListener('click', () => resetGame(false));
+      chillWatchBtn.addEventListener('click', () => resetGame(true));
+
+      modeToggleBtn.addEventListener('click', () => {
+        chillAutoMode = !chillAutoMode;
+        modeToggleBtn.textContent = chillAutoMode ? '🌿 悠闲自动骑行: 开' : '🌿 悠闲自动骑行: 关';
+        modeToggleBtn.classList.toggle('active', chillAutoMode);
+        if (gameState !== 'PLAYING') {
+          resetGame(chillAutoMode);
+        } else {
+          updateHUD();
+        }
+      });
+
+      sceneToggleBtn.addEventListener('click', () => {
+        currentSceneIndex = (currentSceneIndex + 1) % SCENES.length;
+        sceneToggleBtn.textContent = SCENES[currentSceneIndex].name;
+      });
+
+      soundToggleBtn.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        soundToggleBtn.textContent = soundEnabled ? '🔊 音效' : '🔇 静音';
+      });
+
+      // Spawn Logic
+      function spawnEntities() {
+        const rand = Math.random();
+        if (rand < 0.25) {
+          // Wooden Stunt Ramp + aerial collectibles
+          obstacles.push({
+            type: 'ramp',
+            x: W + 60,
+            y: GROUND_Y,
+            w: 68,
+            h: 34,
+            passed: false
+          });
+          // Arc of corn/stars in the air
+          for (let i = 0; i < 4; i++) {
+            collectibles.push({
+              type: i === 3 ? 'star' : 'corn',
+              x: W + 140 + i * 48,
+              y: GROUND_Y - 95 - Math.sin((i / 3) * Math.PI) * 55,
+              r: 16,
+              collected: false,
+              bobOffset: i * 0.8
+            });
+          }
+        } else if (rand < 0.52) {
+          // Cone or Rock obstacle
+          const isCone = Math.random() < 0.5;
+          obstacles.push({
+            type: isCone ? 'cone' : 'rock',
+            x: W + 60,
+            y: GROUND_Y,
+            w: isCone ? 34 : 42,
+            h: isCone ? 42 : 30,
+            passed: false
+          });
+          // Collectible above obstacle
+          collectibles.push({
+            type: Math.random() < 0.35 ? 'croissant' : 'corn',
+            x: W + 60,
+            y: GROUND_Y - 95,
+            r: 16,
+            collected: false,
+            bobOffset: Math.random() * 3
+          });
+        } else if (rand < 0.76) {
+          // Muddy / Water Puddle
+          obstacles.push({
+            type: 'puddle',
+            x: W + 60,
+            y: GROUND_Y,
+            w: 76,
+            h: 12,
+            passed: false
+          });
+          collectibles.push({
+            type: 'corn',
+            x: W + 60,
+            y: GROUND_Y - 80,
+            r: 16,
+            collected: false,
+            bobOffset: 0
+          });
+        } else {
+          // Low-flying Bee (can crouch under or jump over)
+          obstacles.push({
+            type: 'bee',
+            x: W + 60,
+            y: GROUND_Y - 58,
+            w: 36,
+            h: 28,
+            passed: false
+          });
+          // Row of low collectibles for aero crouch
+          for (let i = 0; i < 3; i++) {
+            collectibles.push({
+              type: i === 2 ? 'croissant' : 'corn',
+              x: W + 30 + i * 42,
+              y: GROUND_Y - 22,
+              r: 15,
+              collected: false,
+              bobOffset: i
+            });
+          }
+        }
+      }
+
+      // Main Update Loop
+      function update() {
+        frameCount++;
+
+        // Gentle background motion even on start screen
+        const activePlay = gameState === 'PLAYING';
+        baseSpeed = activePlay ? Math.min(9.5, 5.4 + distance * 0.0025) : 3.2;
+
+        if (turboTimer > 0) turboTimer--;
+        if (invincibleTimer > 0) invincibleTimer--;
+
+        const speedMultiplier = (turboTimer > 0 ? 1.45 : 1) * (duck.crouching ? 1.25 : 1);
+        currentSpeed = baseSpeed * speedMultiplier;
+
+        if (activePlay) {
+          distance += currentSpeed * 0.04;
+          score += currentSpeed * 0.02;
+          if (frameCount % 10 === 0) updateHUD();
+        }
+
+        // Rotate bike wheels and pedals
+        duck.wheelAngle += currentSpeed * 0.045;
+        duck.pedalAngle += currentSpeed * 0.075;
+        duck.wingFlap += currentSpeed * 0.09;
+        duck.propellerAngle += currentSpeed * 0.18;
+
+        if (duck.quackTimer > 0) duck.quackTimer--;
+        if (frameCount % 180 === 0) duck.blinkTimer = 10;
+        if (duck.blinkTimer > 0) duck.blinkTimer--;
+
+        // Turbo rainbow particles
+        if (turboTimer > 0 && frameCount % 2 === 0) {
+          const rainbowColors = ['#ef4444', '#f59e0b', '#eab308', '#22c55e', '#3b82f6', '#a855f7'];
+          const col = rainbowColors[frameCount % rainbowColors.length];
+          particles.push({
+            x: duck.x - 42,
+            y: duck.y - 25 + (Math.random() - 0.5) * 20,
+            vx: -currentSpeed * 0.6,
+            vy: (Math.random() - 0.5) * 1.2,
+            r: 4 + Math.random() * 3,
+            color: col,
+            alpha: 0.9
+          });
+        }
+
+        // Duck Vertical Physics
+        duck.y += duck.vy;
+        if (duck.y < GROUND_Y) {
+          duck.vy += duck.gravity;
+        } else {
+          duck.y = GROUND_Y;
+          duck.vy = 0;
+          duck.jumpCount = 0;
+          if (!duck.flipSpinning) {
+            duck.pitchAngle *= 0.75;
+          }
+        }
+
+        // Flip rotation logic
+        if (duck.flipSpinning) {
+          duck.flipProgress += 0.19;
+          duck.pitchAngle = -duck.flipProgress;
+          if (duck.flipProgress >= Math.PI * 2) {
+            duck.flipSpinning = false;
+            duck.flipProgress = 0;
+            duck.pitchAngle = 0;
+          }
+        } else if (duck.y < GROUND_Y) {
+          duck.pitchAngle = Math.max(-0.35, Math.min(0.3, duck.vy * 0.022));
+        }
+
+        // Scarf wave physics
+        const neckX = duck.x + 4;
+        const neckY = duck.y - (duck.crouching ? 48 : 58);
+        duck.scarfPoints[0].x = neckX;
+        duck.scarfPoints[0].y = neckY;
+        for (let i = 1; i < duck.scarfPoints.length; i++) {
+          const prev = duck.scarfPoints[i - 1];
+          const pt = duck.scarfPoints[i];
+          const targetX = prev.x - 8.5;
+          const targetY = prev.y + Math.sin(frameCount * 0.22 - i * 0.7) * (2.2 + currentSpeed * 0.2);
+          pt.x += (targetX - pt.x) * 0.45;
+          pt.y += (targetY - pt.y) * 0.45;
+        }
+
+        // Parallax Clouds & Trees
+        clouds.forEach((c) => {
+          c.x -= c.speed + currentSpeed * 0.08;
+          if (c.x < -120) {
+            c.x = W + 80;
+            c.y = 40 + Math.random() * 100;
+          }
+        });
+
+        trees.forEach((t) => {
+          t.x -= currentSpeed * 0.55;
+          if (t.x < -80) {
+            t.x = W + 60 + Math.random() * 60;
+          }
+        });
+
+        if (!activePlay) return;
+
+        // AI Auto-Pilot in Chill Mode
+        if (chillAutoMode) {
+          for (const obs of obstacles) {
+            const dx = obs.x - duck.x;
+            if (dx > 25 && dx < 125) {
+              if (obs.type === 'bee') {
+                duck.crouching = true;
+              } else if (obs.type === 'cone' || obs.type === 'rock' || obs.type === 'puddle') {
+                if (duck.y >= GROUND_Y - 2) triggerJump();
+              }
+            }
+          }
+          // Release crouch if no nearby bee
+          const beeNear = obstacles.some((o) => o.type === 'bee' && o.x - duck.x > -30 && o.x - duck.x < 140);
+          if (!beeNear) duck.crouching = false;
+
+          // Occasional happy quack in chill mode
+          if (frameCount % 260 === 0) triggerQuackBell();
+        }
+
+        // Spawn new obstacles & collectibles
+        nextSpawnTimer--;
+        if (nextSpawnTimer <= 0) {
+          spawnEntities();
+          nextSpawnTimer = Math.floor(68 + Math.random() * 55 - Math.min(25, distance * 0.01));
+        }
+
+        // Update Collectibles
+        for (let i = collectibles.length - 1; i >= 0; i--) {
+          const item = collectibles[i];
+          item.x -= currentSpeed;
+
+          const duckCenterY = duck.y - (duck.crouching ? 32 : 44);
+          const dist = Math.hypot(item.x - duck.x, item.y - duckCenterY);
+          if (!item.collected && dist < 46) {
+            item.collected = true;
+            playSound('collect');
+            if (item.type === 'corn') {
+              score += 15;
+              addFloatingText('+15 🌽', item.x, item.y - 10, '#f59e0b');
+              spawnParticles(item.x, item.y, '#fde047', 8, 4);
+            } else if (item.type === 'croissant') {
+              score += 30;
+              addFloatingText('+30 🥐', item.x, item.y - 10, '#ea580c');
+              spawnParticles(item.x, item.y, '#fdba74', 10, 4.5);
+            } else if (item.type === 'star') {
+              score += 60;
+              turboTimer = 200;
+              invincibleTimer = 200;
+              addFloatingText('彩虹冲刺 +60! ⭐', item.x, item.y - 15, '#ec4899');
+              spawnParticles(item.x, item.y, '#f472b6', 16, 6);
+            }
+            updateHUD();
+          }
+
+          if (item.x < -60 || item.collected) {
+            collectibles.splice(i, 1);
+          }
+        }
+
+        // Update Obstacles
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const obs = obstacles[i];
+          obs.x -= currentSpeed + (obs.type === 'bee' ? 1.4 : 0);
+
+          const dx = Math.abs(obs.x - duck.x);
+          if (obs.type === 'ramp') {
+            // Launch duck on ramp contact!
+            if (dx < 36 && duck.y >= GROUND_Y - 12 && duck.vy >= 0) {
+              duck.vy = -15.2;
+              duck.jumpCount = 1;
+              triggerFlip();
+            }
+          } else if (obs.type === 'puddle') {
+            if (dx < 38 && duck.y >= GROUND_Y - 4) {
+              if (frameCount % 4 === 0) {
+                spawnParticles(duck.x, GROUND_Y, '#38bdf8', 5, 3.5);
+              }
+              if (!obs.passed) {
+                obs.passed = true;
+                addFloatingText('哗啦啦~ 💦', duck.x, duck.y - 75, '#0284c7');
+              }
+            }
+          } else {
+            // Cone, Rock, or Bee collision check
+            let hit = false;
+            if (obs.type === 'bee') {
+              // Bee is at GROUND_Y - 58; crouching ducks under it, jumping clears it
+              const duckTop = duck.y - (duck.crouching ? 42 : 76);
+              const duckBottom = duck.y - 10;
+              if (dx < 30 && duckTop < obs.y + 10 && duckBottom > obs.y - 18) {
+                hit = true;
+              }
+            } else {
+              // Ground obstacle
+              if (dx < 30 && duck.y > GROUND_Y - obs.h + 6) {
+                hit = true;
+              }
+            }
+
+            if (hit && invincibleTimer <= 0 && !chillAutoMode) {
+              lives--;
+              invincibleTimer = 90;
+              playSound('hit');
+              spawnParticles(duck.x, duck.y - 30, '#ef4444', 14, 5);
+              addFloatingText('哎呀! 撞到了 💥', duck.x, duck.y - 90, '#ef4444');
+              updateHUD();
+
+              if (lives <= 0) {
+                gameState = 'GAMEOVER';
+                modalEmoji.textContent = '🦆💫';
+                modalTitle.textContent = '骑行休息一下！';
+                modalDesc.textContent = `本次骑行了 ${Math.floor(distance)} 米，获得 ${Math.floor(score)} 分（最高纪录：${highScore} 分）。再来一局还是切换到悠闲观赏模式？`;
+                startGameBtn.textContent = '🔄 再骑一局';
+                overlayBanner.classList.remove('hidden');
+              }
+            }
+          }
+
+          if (obs.x < -100) {
+            obstacles.splice(i, 1);
+          }
+        }
+
+        // Update Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.22;
+          p.alpha -= 0.028;
+          if (p.alpha <= 0) particles.splice(i, 1);
+        }
+
+        // Update Floating Texts
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+          const ft = floatingTexts[i];
+          ft.y += ft.vy;
+          ft.alpha -= 0.022;
+          if (ft.alpha <= 0) floatingTexts.splice(i, 1);
+        }
+      }
+
+      // 2-Bone Inverse Kinematics Solver for Duck Leg (Hip -> Knee -> Pedal)
+      function solveLegIK(hipX, hipY, footX, footY, l1, l2) {
+        const dx = footX - hipX;
+        const dy = footY - hipY;
+        const dist = Math.min(l1 + l2 - 0.5, Math.hypot(dx, dy));
+        const baseAngle = Math.atan2(dy, dx);
+        const cosAngle = (l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist);
+        const clampedCos = Math.max(-1, Math.min(1, cosAngle));
+        const bendAngle = Math.acos(clampedCos);
+        // Bend knee forward (negative angle offset in screen coords)
+        const kneeAngle = baseAngle - bendAngle;
+        return {
+          kneeX: hipX + Math.cos(kneeAngle) * l1,
+          kneeY: hipY + Math.sin(kneeAngle) * l1
+        };
+      }
+
+      // Draw Functions
+      function drawBackground() {
+        const scene = SCENES[currentSceneIndex];
+
+        // Sky Gradient
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+        skyGrad.addColorStop(0, scene.skyTop);
+        skyGrad.addColorStop(1, scene.skyBottom);
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, W, GROUND_Y);
+
+        // Stars if night scene
+        if (scene.stars) {
+          starsList.forEach((s) => {
+            const alpha = 0.4 + 0.6 * Math.sin(frameCount * 0.05 + s.twinkle);
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        }
+
+        // Sun / Moon
+        ctx.save();
+        ctx.fillStyle = scene.sunColor;
+        ctx.shadowColor = scene.sunColor;
+        ctx.shadowBlur = 30;
+        ctx.beginPath();
+        ctx.arc(W - 130, 88, 38, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Clouds
+        clouds.forEach((c) => {
+          ctx.save();
+          ctx.translate(c.x, c.y);
+          ctx.scale(c.scale, c.scale);
+          ctx.fillStyle = scene.stars ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.88)';
+          ctx.beginPath();
+          ctx.arc(0, 0, 24, 0, Math.PI * 2);
+          ctx.arc(22, -6, 28, 0, Math.PI * 2);
+          ctx.arc(48, 0, 22, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // Far Rolling Hills
+        ctx.fillStyle = scene.hillFar;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y);
+        for (let x = 0; x <= W; x += 20) {
+          const y = GROUND_Y - 75 - Math.sin((x + distance * 4) * 0.005) * 35;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(W, GROUND_Y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Near Rolling Hills
+        ctx.fillStyle = scene.hillNear;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y);
+        for (let x = 0; x <= W; x += 20) {
+          const y = GROUND_Y - 38 - Math.sin((x + distance * 9) * 0.008 + 1.5) * 22;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(W, GROUND_Y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Parallax Trees
+        trees.forEach((t) => {
+          ctx.save();
+          ctx.translate(t.x, GROUND_Y - 12);
+          ctx.scale(t.scale, t.scale);
+          // Trunk
+          ctx.fillStyle = '#78350f';
+          ctx.fillRect(-5, -28, 10, 28);
+          // Foliage
+          ctx.fillStyle = t.type === 0 ? '#15803d' : '#16a34a';
+          ctx.beginPath();
+          ctx.arc(0, -42, 22, 0, Math.PI * 2);
+          ctx.arc(-12, -32, 16, 0, Math.PI * 2);
+          ctx.arc(12, -32, 16, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // Grass Verge
+        ctx.fillStyle = scene.grassTop;
+        ctx.fillRect(0, GROUND_Y - 12, W, 16);
+
+        // Road Surface
+        ctx.fillStyle = scene.roadColor;
+        ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+        // Road Top Curb
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(0, GROUND_Y, W, 5);
+
+        // Dashed Center Road Lines
+        ctx.strokeStyle = scene.roadLine;
+        ctx.lineWidth = 4;
+        ctx.setLineDash([36, 28]);
+        ctx.lineDashOffset = (distance * 25) % 64;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y + 48);
+        ctx.lineTo(W, GROUND_Y + 48);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      function drawWheel(cx, cy, radius, angle) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angle);
+
+        // Spokes
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1.6;
+        for (let i = 0; i < 6; i++) {
+          const a = (i * Math.PI) / 3;
+          ctx.beginPath();
+          ctx.moveTo(-Math.cos(a) * (radius - 3), -Math.sin(a) * (radius - 3));
+          ctx.lineTo(Math.cos(a) * (radius - 3), Math.sin(a) * (radius - 3));
+          ctx.stroke();
+        }
+
+        // Inner Rim
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius - 3, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Rubber Tire
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Center Hub
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function drawDuckLeg(hipX, hipY, pedalX, pedalY, isBackLeg) {
+        const { kneeX, kneeY } = solveLegIK(hipX, hipY, pedalX, pedalY, 17, 17);
+
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Leg segments
+        ctx.strokeStyle = isBackLeg ? '#d97706' : '#f97316';
+        ctx.lineWidth = 5.5;
+        ctx.beginPath();
+        ctx.moveTo(hipX, hipY);
+        ctx.lineTo(kneeX, kneeY);
+        ctx.lineTo(pedalX, pedalY);
+        ctx.stroke();
+
+        // Webbed Duck Foot on Pedal
+        ctx.fillStyle = isBackLeg ? '#d97706' : '#fb923c';
+        ctx.beginPath();
+        ctx.moveTo(pedalX - 4, pedalY);
+        ctx.lineTo(pedalX + 12, pedalY - 3);
+        ctx.lineTo(pedalX + 10, pedalY + 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Pedal platform
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(pedalX - 6, pedalY + 1, 13, 4);
+
+        ctx.restore();
+      }
+
+      function drawDuckAndBike() {
+        // Blink when invincible after hit
+        if (invincibleTimer > 0 && turboTimer <= 0 && Math.floor(frameCount / 4) % 2 === 1) {
+          return;
+        }
+
+        ctx.save();
+        ctx.translate(duck.x, duck.y);
+        ctx.rotate(duck.pitchAngle);
+
+        const wheelR = 21;
+        const rearWheelX = -32;
+        const frontWheelX = 34;
+        const wheelY = -wheelR;
+        const crankX = -4;
+        const crankY = -20;
+        const pedalRadius = 11;
+
+        // Back Pedal Position
+        const backPedalX = crankX + Math.cos(duck.pedalAngle + Math.PI) * pedalRadius;
+        const backPedalY = crankY + Math.sin(duck.pedalAngle + Math.PI) * pedalRadius;
+
+        // Front Pedal Position
+        const frontPedalX = crankX + Math.cos(duck.pedalAngle) * pedalRadius;
+        const frontPedalY = crankY + Math.sin(duck.pedalAngle) * pedalRadius;
+
+        // Hip Position
+        const crouchOffset = duck.crouching ? 8 : 0;
+        const hipX = -12;
+        const hipY = -44 + crouchOffset;
+
+        // 1. Back Leg & Back Crank
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(crankX, crankY);
+        ctx.lineTo(backPedalX, backPedalY);
+        ctx.stroke();
+        drawDuckLeg(hipX, hipY, backPedalX, backPedalY, true);
+
+        // 2. Wheels
+        drawWheel(rearWheelX, wheelY, wheelR, duck.wheelAngle);
+        drawWheel(frontWheelX, wheelY, wheelR, duck.wheelAngle);
+
+        // 3. Bicycle Frame (Classic Mint-Teal Cruiser Frame)
+        ctx.strokeStyle = turboTimer > 0 ? '#ec4899' : '#06b6d4';
+        ctx.lineWidth = 4.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        const seatPostX = -15;
+        const seatPostY = -43;
+        const headTubeX = 22;
+        const headTubeY = -45;
+
+        ctx.beginPath();
+        // Rear triangle
+        ctx.moveTo(rearWheelX, wheelY);
+        ctx.lineTo(seatPostX, seatPostY);
+        ctx.lineTo(crankX, crankY);
+        ctx.closePath();
+        // Main frame
+        ctx.moveTo(crankX, crankY);
+        ctx.lineTo(headTubeX, headTubeY);
+        ctx.lineTo(seatPostX, seatPostY);
+        // Front fork
+        ctx.moveTo(headTubeX, headTubeY);
+        ctx.lineTo(frontWheelX, wheelY);
+        ctx.stroke();
+
+        // Handlebars & Stem
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 3.8;
+        ctx.beginPath();
+        ctx.moveTo(headTubeX, headTubeY);
+        ctx.lineTo(headTubeX - 3, -58);
+        ctx.lineTo(headTubeX - 10, -58);
+        ctx.stroke();
+
+        // Brass Bike Bell on Handlebar
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(headTubeX - 4, -62, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cute Front Wicker Basket with a Mini Baguette
+        ctx.fillStyle = '#d97706';
+        ctx.strokeStyle = '#92400e';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(headTubeX + 3, -56, 15, 13, 3);
+        ctx.fill();
+        ctx.stroke();
+        // Baguette peeking out
+        ctx.fillStyle = '#fcd34d';
+        ctx.beginPath();
+        ctx.ellipse(headTubeX + 11, -59, 4, 7, 0.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Saddle
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.ellipse(seatPostX - 1, seatPostY - 2, 10, 4, -0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Crank Gear
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.arc(crankX, crankY, 6.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 4. Duck Body
+        const bob = Math.sin(duck.pedalAngle * 2) * 1.8;
+        ctx.save();
+        ctx.translate(-8, -50 + crouchOffset + bob);
+        if (duck.crouching) {
+          ctx.rotate(0.26); // Lean forward aero tuck
+        }
+
+        // Plump Duck Torso
+        ctx.fillStyle = '#fef08a';
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 2, 20, 14, -0.18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Tail Feathers
+        ctx.beginPath();
+        ctx.moveTo(-17, -2);
+        ctx.lineTo(-27, -9);
+        ctx.lineTo(-22, 1);
+        ctx.lineTo(-26, 5);
+        ctx.lineTo(-16, 7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Duck Head
+        const headX = 14;
+        const headY = -14;
+        ctx.beginPath();
+        ctx.arc(headX, headY, 13.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Rosy Cheek
+        ctx.fillStyle = 'rgba(244, 114, 182, 0.55)';
+        ctx.beginPath();
+        ctx.ellipse(headX + 4, headY + 3, 3.8, 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Duck Eye
+        ctx.fillStyle = '#0f172a';
+        if (duck.blinkTimer > 0) {
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(headX + 3, headY - 3);
+          ctx.lineTo(headX + 8, headY - 3);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.arc(headX + 5.5, headY - 3.5, 2.7, 0, Math.PI * 2);
+          ctx.fill();
+          // Eye highlight
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(headX + 6.3, headY - 4.3, 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Duck Beak (Opens when quacking!)
+        ctx.fillStyle = '#f97316';
+        ctx.strokeStyle = '#c2410c';
+        ctx.lineWidth = 1.4;
+        if (duck.quackTimer > 0) {
+          // Top beak
+          ctx.beginPath();
+          ctx.ellipse(headX + 16, headY - 3, 8, 3.2, -0.18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          // Bottom beak
+          ctx.beginPath();
+          ctx.ellipse(headX + 15, headY + 2.5, 7, 2.8, 0.22, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.ellipse(headX + 16, headY - 1, 8.5, 4.2, 0.05, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        // Hat / Outfit Drawing
+        const hat = HATS[currentHatIndex].id;
+        if (hat === 'helmet') {
+          ctx.fillStyle = '#ef4444';
+          ctx.strokeStyle = '#991b1b';
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.arc(headX, headY - 3, 14.5, Math.PI * 1.05, Math.PI * 1.98);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          // Helmet vents
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(headX - 5, headY - 13, 4, 3);
+          ctx.fillRect(headX + 2, headY - 13, 4, 3);
+          // Chin strap
+          ctx.strokeStyle = '#334155';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(headX - 8, headY - 3);
+          ctx.lineTo(headX + 1, headY + 9);
+          ctx.stroke();
+        } else if (hat === 'straw') {
+          ctx.fillStyle = '#fcd34d';
+          ctx.strokeStyle = '#b45309';
+          ctx.lineWidth = 1.6;
+          // Brim
+          ctx.beginPath();
+          ctx.ellipse(headX, headY - 10, 19, 4.5, -0.08, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          // Dome
+          ctx.beginPath();
+          ctx.arc(headX, headY - 10, 10.5, Math.PI, 0);
+          ctx.fill();
+          ctx.stroke();
+          // Red ribbon
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(headX - 10, headY - 12, 20, 3);
+        } else if (hat === 'propeller') {
+          ctx.fillStyle = '#3b82f6';
+          ctx.beginPath();
+          ctx.arc(headX, headY - 5, 13.5, Math.PI, 0);
+          ctx.fill();
+          ctx.fillStyle = '#facc15';
+          ctx.fillRect(headX - 1.5, headY - 23, 3, 6);
+          // Spinning blades
+          const bladeW = Math.cos(duck.propellerAngle) * 14;
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(headX - bladeW, headY - 23);
+          ctx.lineTo(headX + bladeW, headY - 23);
+          ctx.stroke();
+        } else if (hat === 'shades') {
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(headX + 1, headY - 7, 10, 6);
+          ctx.strokeStyle = '#facc15';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(headX + 1, headY - 7, 10, 6);
+          ctx.beginPath();
+          ctx.moveTo(headX - 8, headY - 5);
+          ctx.lineTo(headX + 1, headY - 5);
+          ctx.stroke();
+        } else if (hat === 'crown') {
+          ctx.fillStyle = '#facc15';
+          ctx.strokeStyle = '#ca8a04';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(headX - 10, headY - 10);
+          ctx.lineTo(headX - 8, headY - 21);
+          ctx.lineTo(headX - 2, headY - 14);
+          ctx.lineTo(headX + 2, headY - 22);
+          ctx.lineTo(headX + 6, headY - 14);
+          ctx.lineTo(headX + 11, headY - 20);
+          ctx.lineTo(headX + 10, headY - 10);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        // Flapping Wing reaching toward handlebars
+        const wingAngle = Math.sin(duck.wingFlap) * 0.16 + 0.1;
+        ctx.save();
+        ctx.translate(4, 0);
+        ctx.rotate(wingAngle);
+        ctx.fillStyle = '#fde047';
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.ellipse(8, 2, 12, 6, 0.25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.restore(); // End Duck Body
+
+        // 5. Front Crank & Front Duck Leg
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.moveTo(crankX, crankY);
+        ctx.lineTo(frontPedalX, frontPedalY);
+        ctx.stroke();
+        drawDuckLeg(hipX, hipY, frontPedalX, frontPedalY, false);
+
+        ctx.restore(); // End Duck+Bike transform
+
+        // 6. Flowing Red Scarf in World Coordinates
+        ctx.save();
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        duck.scarfPoints.forEach((pt, idx) => {
+          if (idx === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawObstaclesAndItems() {
+        // Draw Obstacles
+        obstacles.forEach((obs) => {
+          ctx.save();
+          if (obs.type === 'cone') {
+            // Orange traffic cone
+            ctx.fillStyle = '#f97316';
+            ctx.strokeStyle = '#c2410c';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(obs.x - 16, obs.y);
+            ctx.lineTo(obs.x - 4, obs.y - obs.h);
+            ctx.lineTo(obs.x + 4, obs.y - obs.h);
+            ctx.lineTo(obs.x + 16, obs.y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            // White reflective stripe
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(obs.x - 9, obs.y - 24, 18, 7);
+          } else if (obs.type === 'rock') {
+            ctx.fillStyle = '#94a3b8';
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(obs.x, obs.y - 6, 18, Math.PI, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          } else if (obs.type === 'puddle') {
+            ctx.fillStyle = '#38bdf8';
+            ctx.strokeStyle = '#0284c7';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(obs.x, obs.y + 3, obs.w / 2, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          } else if (obs.type === 'ramp') {
+            ctx.fillStyle = '#d97706';
+            ctx.strokeStyle = '#78350f';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(obs.x - obs.w / 2, obs.y);
+            ctx.lineTo(obs.x + obs.w / 2, obs.y - obs.h);
+            ctx.lineTo(obs.x + obs.w / 2, obs.y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            // Arrow indicator
+            ctx.fillStyle = '#fef08a';
+            ctx.font = 'bold 14px sans-serif';
+            ctx.fillText('↗跳台', obs.x - 16, obs.y - 6);
+          } else if (obs.type === 'bee') {
+            const bobY = obs.y + Math.sin(frameCount * 0.25) * 5;
+            // Wings
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.beginPath();
+            ctx.ellipse(obs.x, bobY - 10, 7, 5, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            // Body
+            ctx.fillStyle = '#facc15';
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(obs.x, bobY, 13, 9, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            // Black stripes
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(obs.x - 4, bobY - 8, 3, 16);
+            ctx.fillRect(obs.x + 3, bobY - 7, 3, 14);
+          }
+          ctx.restore();
+        });
+
+        // Draw Collectibles
+        collectibles.forEach((item) => {
+          const bob = Math.sin(frameCount * 0.12 + item.bobOffset) * 5;
+          ctx.save();
+          ctx.font = '26px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const icon = item.type === 'corn' ? '🌽' : item.type === 'croissant' ? '🥐' : '⭐';
+          ctx.fillText(icon, item.x, item.y + bob);
+          ctx.restore();
+        });
+
+        // Draw Particles
+        particles.forEach((p) => {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // Draw Floating Texts
+        floatingTexts.forEach((ft) => {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, ft.alpha);
+          ctx.font = '800 18px sans-serif';
+          ctx.fillStyle = ft.color;
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 4;
+          ctx.textAlign = 'center';
+          ctx.strokeText(ft.text, ft.x, ft.y);
+          ctx.fillText(ft.text, ft.x, ft.y);
+          ctx.restore();
+        });
+      }
+
+      function loop() {
+        update();
+        ctx.clearRect(0, 0, W, H);
+        drawBackground();
+        drawObstaclesAndItems();
+        drawDuckAndBike();
+        requestAnimationFrame(loop);
+      }
+
+      loop();
+    })();
+  </script>
+</body>
+</html>
